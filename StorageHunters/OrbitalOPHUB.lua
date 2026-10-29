@@ -1,7 +1,7 @@
 -- =======================================================================
 --   🌍 LOAD ORBITAL UI LIBRARY
 -- =======================================================================
-local Orbital = loadstring(game:HttpGet("https://raw.githubusercontent.com/thatOPdude/fun-stuff/refs/heads/main/OrbitalLib.lua?nocache=" .. tostring(tick())))()
+local Orbital = loadstring(game:HttpGet("https://raw.githubusercontent.com/thatOPdude/LuaUILibraries/refs/heads/main/OrbitalLib.lua?nocache=" .. tostring(tick())))()
 
 -- =======================================================================
 --   SERVICES
