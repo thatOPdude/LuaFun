@@ -1,7 +1,7 @@
 -- =======================================================================
 --   🎃 LOAD HALLOW UI LIBRARY
 -- =======================================================================
-local Hallow = loadstring(game:HttpGet("https://raw.githubusercontent.com/thatOPdude/fun-stuff/refs/heads/main/HallowLib.lua?nocache=" .. tostring(tick())))()
+local Hallow = loadstring(game:HttpGet("https://raw.githubusercontent.com/thatOPdude/LuaUILibraries/refs/heads/main/HallowLib.lua?nocache=" .. tostring(tick())))()
 
 -- =======================================================================
 --   SERVICES
