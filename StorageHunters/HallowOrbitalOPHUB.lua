@@ -1,7 +1,7 @@
 -- =======================================================================
 --   🎃 LOAD HALLOW-RADIAL UI LIBRARY
 -- =======================================================================
-local Hallow = loadstring(game:HttpGet("https://raw.githubusercontent.com/thatOPdude/LuaUILibraries/refs/heads/main/OrbitalHallowLib.lua?nocache=" .. tostring(tick())))()
+local Hallow = loadstring(game:HttpGet("https://raw.githubusercontent.com/thatOPdude/LuaUILibraries/main/HallowOrbitalRework.lua?nocache=" .. tostring(tick())))()
 
 -- =======================================================================
 --   SERVICES
