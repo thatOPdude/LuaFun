@@ -1,6 +1,6 @@
 --[[
 	NEXUS LOADER (Military Dev Hub Edition)
-	All URLs synchronized with github.com/thatOPdude/LuaUILibraries
+	Includes "The Convergence" intro ritual & multi-UI engine selector.
 ]]
 
 local Players                = game:GetService("Players")
@@ -27,7 +27,7 @@ local Config = {
 	ToggleKey      = Enum.KeyCode.RightShift,
 	CloseAfterLoad = true,
 	Sounds         = true,
-	Intro          = true,
+	Intro          = true, -- Enables "The Convergence" startup animation
 	Hotkeys        = true,
 }
 
@@ -256,7 +256,6 @@ local function startMilitaryDevHub(Lib, uiName)
 		end)
 	end
 
-	-- Universal icon router (customized for Military/Base game context)
 	local function formatIcon(iconDef)
 		if typeof(iconDef) == "string" then return iconDef end
 		if uiName == "Grimoire" then
@@ -413,7 +412,7 @@ local function startMilitaryDevHub(Lib, uiName)
 		collectLoopRunning = false
 	end
 
-	-- Build Tabs with Tycoon/Military specific icons
+	-- Build Tabs
 	local collectorTab = CreateTab("Collector", { Grimoire = "star", Radial = "💰" })
 	collectorTab:CreateSection("Target Plot")
 	statusLabel = collectorTab:CreateLabel("Current Target: Plot " .. selectedPlotId .. " (" .. detectedMethod .. ")")
@@ -735,6 +734,10 @@ local function tw(obj, props, duration, style, dir)
 	return t
 end
 
+local function ease(a, style, dir)
+	return TweenService:GetValue(a, style or Easing.Quad, dir or Dir.Out)
+end
+
 local function playSound(id, pitch, volume)
 	if not Config.Sounds or not id then return end
 	task.spawn(function()
@@ -757,6 +760,13 @@ local function hoverSound(pitch, volume)
 		lastHover = now
 		playSound(Sounds.Hover, pitch or 1.7, volume or 0.3)
 	end
+end
+
+local function ssub(s, n)
+	if n <= 0 then return "" end
+	local len = utf8.len(s)
+	if not len or n >= len then return s end
+	return string.sub(s, 1, utf8.offset(s, n + 1) - 1)
 end
 
 local function rainbow()
@@ -830,7 +840,7 @@ end
 
 Icons.prism = function(r, e)
 	P(r, "round", 0.5, 0.5, 0.64, 0.64, e.Accent, 45, 175)
-	P(r, "round", 0.5, 0.5, 0.42, 0.42, e.Glow, 45, 165)
+	P(r, "round", 0.5, 0.42, 0.42, 0.42, e.Glow, 45, 165)
 	P(r, "round", 0.5, 0.5, 0.18, 0.18, WHITE, 45)
 	HL(r, 0.34, 0.34, 0.08, 0.22, 40, 0.6)
 end
@@ -848,7 +858,6 @@ Icons.hallow = function(r, e)
 	P(r, "round", 0.63, 0.53, 0.115, 0.115, dk, 45)
 	P(r, "round", 0.37, 0.53, 0.06, 0.06, gl, 45)
 	P(r, "round", 0.63, 0.53, 0.06, 0.06, gl, 45)
-	P(r, "round", 0.50, 0.63, 0.06, 0.06, dk, 45)
 	P(r, "ellipse", 0.50, 0.75, 0.38, 0.11, dk)
 	P(r, "ellipse", 0.50, 0.75, 0.32, 0.065, gl)
 	HL(r, 0.31, 0.42, 0.06, 0.2, 10)
@@ -910,7 +919,7 @@ local function mkIcon(name, parent, o)
 end
 
 -- =======================================================================
---   CREATE NEXUS LOADER
+--   CREATE NEXUS LOADER WITH "THE CONVERGENCE" INTRO
 -- =======================================================================
 local function CreateLoader()
 	local W, H = 620, 490
@@ -942,6 +951,14 @@ local function CreateLoader()
 		return g
 	end
 
+	local Dim = new("Frame", {
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundColor3 = BLACK,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ZIndex = 1,
+	}, ScreenGui)
+
 	local Flash = new("Frame", {
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundColor3 = WHITE,
@@ -949,6 +966,90 @@ local function CreateLoader()
 		BorderSizePixel = 0,
 		ZIndex = 50,
 	}, ScreenGui)
+
+	local NotifyHolder = new("Frame", {
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -22, 1, -22),
+		Size = UDim2.new(0, 320, 1, -44),
+		BackgroundTransparency = 1,
+		ZIndex = 60,
+	}, ScreenGui)
+	new("UIListLayout", {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		VerticalAlignment = Enum.VerticalAlignment.Bottom,
+		Padding = UDim.new(0, 10),
+	}, NotifyHolder)
+
+	local function notify(cfg)
+		if not NotifyHolder or not NotifyHolder.Parent then return end
+		local title = tostring(cfg.Title or "Notice")
+		local text = tostring(cfg.Content or "")
+		local duration = cfg.Duration or 3.5
+		local accent = ({ info = Pal.Glow, success = Pal.Success, warn = Pal.Warn, error = Pal.Danger })[cfg.Type or "info"] or Pal.Glow
+		playSound(Sounds.Notify, 1, 0.9)
+
+		local okT, sz = pcall(function() return TextService:GetTextSize(text, 12, Reg, Vector2.new(260, 10000)) end)
+		local textH = okT and sz.Y or 14
+		local height = math.max(60, 40 + textH + 14)
+		local DEPTH = 6
+
+		local wrap = new("Frame", { Size = UDim2.new(1, 0, 0, height + DEPTH), BackgroundTransparency = 1 }, NotifyHolder)
+		local mover = new("Frame", { Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(1.2, 0, 0, 0), BackgroundTransparency = 1 }, wrap)
+		local slab = new("Frame", {
+			Position = UDim2.new(0, 0, 0, DEPTH), Size = UDim2.new(1, 0, 1, -DEPTH),
+			BackgroundColor3 = mix(accent, BLACK, 0.62), BorderSizePixel = 0,
+		}, mover)
+		round(slab, UDim.new(0, 10))
+		local toast = new("Frame", {
+			Size = UDim2.new(1, 0, 1, -DEPTH), BackgroundColor3 = Pal.Bg, BackgroundTransparency = 0.03,
+			BorderSizePixel = 0, ClipsDescendants = true, ZIndex = 2,
+		}, mover)
+		round(toast, UDim.new(0, 10))
+		bevel(toast, 190)
+		rimLight(outline(toast, accent, 1.5, 0.1))
+		new("Frame", { Size = UDim2.new(0, 4, 1, 0), BackgroundColor3 = accent, BorderSizePixel = 0 }, toast)
+		label({
+			Text = title, Font = Bold, TextSize = 14, TextColor3 = accent, TextXAlignment = Left,
+			Position = UDim2.new(0, 16, 0, 10), Size = UDim2.new(1, -26, 0, 18),
+		}, toast)
+		label({
+			Text = text, TextSize = 12, TextColor3 = Pal.Muted, TextXAlignment = Left,
+			TextYAlignment = Enum.TextYAlignment.Top, TextWrapped = true,
+			Position = UDim2.new(0, 16, 0, 31), Size = UDim2.new(1, -28, 0, textH),
+		}, toast)
+		local bar = new("Frame", {
+			Position = UDim2.new(0, 16, 1, -7), Size = UDim2.new(1, -32, 0, 2),
+			BackgroundColor3 = accent, BackgroundTransparency = 0.25, BorderSizePixel = 0,
+		}, toast)
+		round(bar)
+
+		tw(mover, { Position = UDim2.new(0, 0, 0, 0) }, 0.45, Easing.Back)
+		tw(bar, { Size = UDim2.new(0, 0, 0, 2) }, duration, Easing.Linear)
+
+		local dismissed = false
+		local function dismiss()
+			if dismissed then return end
+			dismissed = true
+			local out = tw(mover, { Position = UDim2.new(1.2, 0, 0, 0) }, 0.3, Easing.Back, Dir.In)
+			out.Completed:Connect(function()
+				local shrink = tw(wrap, { Size = UDim2.new(1, 0, 0, 0) }, 0.2)
+				shrink.Completed:Connect(function() wrap:Destroy() end)
+			end)
+		end
+		local catcher = new("TextButton", { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", ZIndex = 5 }, toast)
+		catcher.MouseButton1Click:Connect(dismiss)
+		task.delay(duration, dismiss)
+	end
+
+	-- Intro stage for ritual animations
+	local Stage = new("Frame", {
+		AnchorPoint = CENTER,
+		Position = UDim2.new(0.5, 0, 0.5, 0),
+		Size = UDim2.new(0, 0, 0, 0),
+		BackgroundTransparency = 1,
+		ZIndex = 10,
+	}, ScreenGui)
+	local StageScale = new("UIScale", nil, Stage)
 
 	local Root = new("Frame", {
 		Name = "Root",
@@ -971,7 +1072,9 @@ local function CreateLoader()
 	local function applyScale()
 		local cam = Workspace.CurrentCamera
 		local vp = cam and cam.ViewportSize or Vector2.new(1280, 720)
-		RootScale.Scale = math.clamp(math.min(vp.X / (W + 70), vp.Y / (H + 90)), 0.4, 1)
+		local s = math.clamp(math.min(vp.X / (W + 70), vp.Y / (H + 90)), 0.4, 1)
+		RootScale.Scale = s
+		StageScale.Scale = s
 	end
 	applyScale()
 	if Workspace.CurrentCamera then
@@ -1353,6 +1456,64 @@ local function CreateLoader()
 
 	for i, e in ipairs(SCRIPTS) do buildEntry(i, e) end
 
+	local function playCards()
+		for i, st in ipairs(entries) do
+			st.mover.Position = UDim2.new(0, 60, 0, 0)
+			task.delay((i - 1) * 0.07, function()
+				if st.mover.Parent then
+					tw(st.mover, { Position = UDim2.new(0, 0, 0, 0) }, 0.5, Easing.Quint)
+				end
+			end)
+		end
+	end
+
+	-- =====================================================================
+	--   EFFECT HELPERS
+	-- =====================================================================
+	local function lightning(power)
+		power = power or 1
+		task.spawn(function()
+			Flash.BackgroundColor3 = WHITE
+			Flash.BackgroundTransparency = 1 - 0.5 * power
+			tw(Flash, { BackgroundTransparency = 1 }, 0.12)
+			task.wait(0.15)
+			Flash.BackgroundTransparency = 1 - 0.7 * power
+			tw(Flash, { BackgroundTransparency = 1 }, 0.5)
+		end)
+		playSound(Sounds.Thunder, 0.5, 1)
+	end
+
+	local function shake(target, power, dur)
+		task.spawn(function()
+			local base = target.Position
+			local t = 0
+			while t < dur do
+				local dt = RunService.RenderStepped:Wait()
+				t += dt
+				local k = 1 - t / dur
+				target.Position = UDim2.new(
+					base.X.Scale, base.X.Offset + (math.random() - 0.5) * 2 * power * k,
+					base.Y.Scale, base.Y.Offset + (math.random() - 0.5) * 2 * power * k
+				)
+			end
+			target.Position = base
+		end)
+	end
+
+	local function scramble(lbl, text)
+		local pool = "#%&@$?/\\|<>~^*+="
+		local n = utf8.len(text) or #text
+		for i = 1, n do
+			for _ = 1, 2 do
+				if not lbl.Parent then return end
+				local r = math.random(#pool)
+				lbl.Text = ssub(text, i - 1) .. string.sub(pool, r, r)
+				task.wait(0.025)
+			end
+		end
+		if lbl.Parent then lbl.Text = text end
+	end
+
 	local function openWindow()
 		Root.Visible = true
 		Window.BackgroundColor3 = C(225, 228, 255)
@@ -1389,9 +1550,144 @@ local function CreateLoader()
 
 	CloseBtn.MouseButton1Click:Connect(function() Win:Destroy() end)
 
+	-- =====================================================================
+	--   INTRO: THE CONVERGENCE
+	-- =====================================================================
+	local function animate(dur, step)
+		local start = os.clock()
+		while true do
+			RunService.RenderStepped:Wait()
+			if Win.Destroyed then return false end
+			local a = math.clamp((os.clock() - start) / dur, 0, 1)
+			step(a)
+			if a >= 1 then return true end
+		end
+	end
+
+	local function runIntro()
+		Win.InIntro = true
+		local ritual = {}
+		local function keep(o) ritual[#ritual + 1] = o return o end
+		local RING_R = 120
+
+		local ring = keep(new("Frame", {
+			AnchorPoint = CENTER, Position = UDim2.new(0, 0, 0, 0), Size = UDim2.new(0, 0, 0, 0),
+			BackgroundTransparency = 1, ZIndex = 1,
+		}, Stage))
+		round(ring)
+		local ringS = outline(ring, WHITE, 2, 1)
+		sweep(ringS, 140)
+
+		local orbs = {}
+		for i, e in ipairs(SCRIPTS) do
+			local halo = keep(new("Frame", {
+				AnchorPoint = CENTER, Size = UDim2.new(0, 0, 0, 0), BackgroundColor3 = e.Accent,
+				BackgroundTransparency = 0.78, BorderSizePixel = 0, ZIndex = 2,
+			}, Stage))
+			round(halo)
+			local core = keep(new("Frame", {
+				AnchorPoint = CENTER, Size = UDim2.new(0, 0, 0, 0), BackgroundColor3 = e.Glow, BorderSizePixel = 0, ZIndex = 3,
+			}, Stage))
+			round(core)
+			orbs[i] = { halo = halo, core = core, color = e.Glow, base = (i - 1) / #SCRIPTS * math.pi * 2 }
+		end
+
+		local status = keep(label({
+			Text = "", TextSize = 13, TextColor3 = Pal.Muted, TextTransparency = 1, AnchorPoint = CENTER,
+			Position = UDim2.new(0, 0, 0, RING_R + 56), Size = UDim2.new(0, 320, 0, 20), ZIndex = 4,
+		}, Stage))
+		local function say(text)
+			status.Text = text
+			status.TextTransparency = 1
+			tw(status, { TextTransparency = 0.15 }, 0.35)
+		end
+
+		local iR, iAng, iSpin, iSize = 0, 0, 1.5, 0
+		local trailT = 0
+		local conn = RunService.RenderStepped:Connect(function(dt)
+			iAng += iSpin * dt
+			trailT += dt
+			local dropTrail = trailT > 0.045 and iSize > 0.3
+			if dropTrail then trailT = 0 end
+			for _, o in ipairs(orbs) do
+				local a = o.base + iAng
+				local x, y = math.cos(a) * iR, math.sin(a) * iR
+				local pos = UDim2.new(0, x, 0, y)
+				o.core.Position, o.halo.Position = pos, pos
+				o.core.Size = UDim2.new(0, 12 * iSize, 0, 12 * iSize)
+				o.halo.Size = UDim2.new(0, 46 * iSize, 0, 46 * iSize)
+				if dropTrail then
+					local d = new("Frame", {
+						AnchorPoint = CENTER, Position = pos, Size = UDim2.new(0, 9 * iSize, 0, 9 * iSize),
+						BackgroundColor3 = o.color, BackgroundTransparency = 0.45, BorderSizePixel = 0, ZIndex = 2,
+					}, Stage)
+					round(d)
+					tw(d, { Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1 }, 0.5, Easing.Quad)
+					Debris:AddItem(d, 0.6)
+				end
+			end
+		end)
+
+		local function abort()
+			conn:Disconnect()
+			for _, o in ipairs(ritual) do pcall(function() o:Destroy() end) end
+		end
+
+		tw(Dim, { BackgroundTransparency = 0.4 }, 0.8)
+		task.wait(0.35)
+		if Win.Destroyed then return abort() end
+
+		say("gathering the hubs...")
+		playSound(Sounds.Open, 0.7, 0.8)
+		tw(ring, { Size = UDim2.new(0, RING_R * 2, 0, RING_R * 2) }, 0.9, Easing.Quint)
+		tw(ringS, { Transparency = 0.4 }, 0.9)
+		if not animate(0.9, function(a)
+			local k = ease(a, Easing.Quint, Dir.Out)
+			iR, iSize = RING_R * k, k
+		end) then return abort() end
+		task.wait(0.25)
+
+		say("binding them together...")
+		if not animate(1.0, function(a)
+			iSpin = 1.5 + 11 * ease(a, Easing.Quad, Dir.In)
+		end) then return abort() end
+
+		status.TextTransparency = 1
+		tw(ring, { Size = UDim2.new(0, 0, 0, 0) }, 0.55, Easing.Quint, Dir.In)
+		tw(ringS, { Transparency = 1 }, 0.5)
+		if not animate(0.55, function(a)
+			iR = RING_R * (1 - ease(a, Easing.Quint, Dir.In))
+			iSize = 1 + a * 0.8
+		end) then return abort() end
+
+		lightning(1)
+		shake(Stage, 10, 0.4)
+		for i, e in ipairs(SCRIPTS) do
+			task.delay((i - 1) * 0.07, function()
+				if not Win.Destroyed then shockwave(Stage, e.Glow, 120, 900, 1.0, 4) end
+			end)
+		end
+		abort()
+		if Win.Destroyed then return end
+
+		openWindow()
+		if Win.Destroyed then return end
+		tw(Dim, { BackgroundTransparency = 1 }, 0.9)
+
+		Win.InIntro = false
+		Win.Started = true
+		playCards()
+		task.spawn(scramble, TitleL, Config.Title)
+		notify({
+			Title = "Nexus ready",
+			Content = "Press 1-5 or click LAUNCH to mount any UI engine.",
+			Duration = 4,
+		})
+	end
+
 	track(UserInputService.InputBegan:Connect(function(input, gpe)
 		if gpe or Win.Destroyed then return end
-		if Config.Hotkeys and Win.Started and Root.Visible then
+		if Config.Hotkeys and Win.Started and Root.Visible and not Win.InIntro then
 			for i, k in ipairs(NUM_KEYS) do
 				if input.KeyCode == k and entries[i] then
 					entries[i].launch()
@@ -1436,15 +1732,13 @@ local function CreateLoader()
 
 	task.defer(function()
 		if Win.Destroyed then return end
-		openWindow()
-		Win.Started = true
-		for i, st in ipairs(entries) do
-			st.mover.Position = UDim2.new(0, 60, 0, 0)
-			task.delay((i - 1) * 0.07, function()
-				if st.mover.Parent then
-					tw(st.mover, { Position = UDim2.new(0, 0, 0, 0) }, 0.5, Easing.Quint)
-				end
-			end)
+		if Config.Intro then
+			runIntro()
+		else
+			openWindow()
+			TitleL.Text = Config.Title
+			Win.Started = true
+			playCards()
 		end
 	end)
 
